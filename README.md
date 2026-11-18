@@ -1,4 +1,4 @@
-# CV Sender
+# CV Sender https://yian2.github.io/automated_csv/
 
 App web estàtica per enviar candidatures des del teu Gmail: puges un CSV d'empreses i els CVs en PDF, l'app ho revisa (correus vàlids, repetits, bústies genèriques, CV que falta) i envia cada correu amb el CV adjunt, amb un registre en directe. Després, al panell **Seguiment**, et diu qui t'ha respost, quantes respostes hi ha i quins correus han rebotat. Està en català, castellà i anglès. No cal instal·lar res: funciona al navegador, al mòbil i a l'ordinador.
 
