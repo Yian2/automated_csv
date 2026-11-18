@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CV Sender</title>
+<meta name="description" content="Envia candidatures personalitzades des del teu Gmail: puja un CSV i els CVs, revisa-ho i envia-les amb registre en directe.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap">
+<style>
+/* Layout: tres passos en columna; el registre d'enviament imita una terminal */
+:root{
+  --bg:#f5f6f8; --surface:#fff; --ink:#151a24; --muted:#5c6475; --line:#e2e5ec; --soft:#eef2ff;
+  --accent:#3a66ff; --accent-ink:#fff; --ok:#1f8a5b; --warn:#b7791f; --bad:#c2410c;
+  --term-bg:#0f1218; --term-ink:#d7dce6;
+  --display:"Instrument Serif", Georgia, serif; --body:"Geist", system-ui, sans-serif; --mono:"Geist Mono", ui-monospace, Menlo, monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#0d0f14; --surface:#151821; --ink:#eef0f5; --muted:#9aa2b3; --line:#262a36; --soft:#1b2140;
+  --accent:#6f8dff; --accent-ink:#0d0f14; --ok:#3ccf8e; --warn:#e0a83a; --bad:#f07a4a; --term-bg:#07080b; color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink)}
+body{font:15px/1.5 var(--body)}
+.wrap{max-width:1040px;margin:0 auto;padding:24px max(16px,env(safe-area-inset-right)) 60px max(16px,env(safe-area-inset-left))}
+h1{font:400 clamp(38px,7vw,60px)/1 var(--display);margin:0;letter-spacing:-.01em}
+h1 em{color:var(--accent)}
+.lede{color:var(--muted);max-width:62ch;margin:10px 0 0}
+.step{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;margin-top:18px}
+.step h2{font:600 18px var(--body);margin:0 0 4px;display:flex;gap:10px;align-items:center}
+.step h2 .n{font:500 13px var(--mono);color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:1px 9px}
+.step p.h{color:var(--muted);margin:0 0 14px}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.field{display:flex;flex-direction:column;gap:5px;flex:1 1 240px;min-width:0}
+.field label{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+input[type=text],input[type=number],textarea{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:9px 11px;font:14px/1.45 var(--body);width:100%}
+textarea{min-height:150px;resize:vertical}
+.drop{border:1.5px dashed var(--line);border-radius:12px;padding:16px;text-align:center;color:var(--muted);flex:1 1 240px;cursor:pointer}
+.drop.on{border-color:var(--accent);color:var(--ink)}
+.drop b{color:var(--ink)}
+.btn{appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:10px 16px;font:500 14px var(--body);cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.summary{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 12px}
+.pill{font:500 12.5px var(--mono);border-radius:999px;padding:3px 10px;border:1px solid var(--line)}
+.pill.ok{color:var(--ok);border-color:var(--ok)} .pill.warn{color:var(--warn);border-color:var(--warn)} .pill.bad{color:var(--bad);border-color:var(--bad)}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;min-width:720px;font-size:13.5px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);background:var(--bg);position:sticky;top:0}
+td.st{white-space:nowrap}
+.issue{display:block;font-size:12px}
+.issue.warn{color:var(--warn)} .issue.bad{color:var(--bad)} .issue.ok{color:var(--ok)}
+.term{background:var(--term-bg);color:var(--term-ink);font:13px/1.6 var(--mono);border-radius:12px;padding:14px;height:300px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+.term .ok{color:#3ccf8e} .term .err{color:#f07a4a} .term .dim{color:#7c8496} .term .acc{color:#8aa2ff}
+.bar{height:6px;background:var(--line);border-radius:999px;overflow:hidden;margin:12px 0}
+.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+.note{font-size:13px;color:var(--muted)}
+details{margin-top:10px} summary{cursor:pointer;color:var(--accent)}
+code{font-family:var(--mono);font-size:.92em;background:var(--soft);padding:1px 5px;border-radius:5px}
+footer{color:var(--muted);font-size:13px;margin-top:28px}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>CV <em>Sender</em></h1>
+    <p class="lede">Puja un CSV amb les empreses i els teus CVs. L'app ho revisa tot, et mostra els problemes i envia cada candidatura des del teu Gmail, amb el seu CV adjunt i un registre en directe.</p>
+  </header>
+
+  <!-- 1 -->
+  <section class="step" id="s1">
+    <h2><span class="n">1</span> Puja les dades</h2>
+    <p class="h">Columnes del CSV: <code>empresa</code>, <code>email</code> i, si vols, <code>assumpte</code>, <code>missatge</code> i <code>cv</code> (nom del fitxer PDF). <a href="exemple.csv" download>Descarrega un CSV d'exemple</a>.</p>
+    <div class="row">
+      <label class="drop" id="drop-csv" for="f-csv"><b>CSV d'empreses</b><br><span id="csv-name">Arrossega'l aquí o toca per triar-lo</span>
+        <input id="f-csv" type="file" accept=".csv,text/csv" hidden></label>
+      <label class="drop" id="drop-cv" for="f-cv"><b>CVs en PDF</b><br><span id="cv-name">Un o més fitxers. Si una fila no en diu cap, s'adjunta el primer.</span>
+        <input id="f-cv" type="file" accept="application/pdf" multiple hidden></label>
+    </div>
+    <details>
+      <summary>Assumpte i missatge per defecte (per a les files que no en porten)</summary>
+      <p class="note">Pots fer servir <code>{empresa}</code> i qualsevol altra columna del CSV entre claus, per exemple <code>{poble}</code>.</p>
+      <div class="field"><label for="d-subj">Assumpte</label><input id="d-subj" type="text" value="Pràctiques curriculars – {empresa}"></div>
+      <div class="field" style="margin-top:10px"><label for="d-body">Missatge</label><textarea id="d-body">Hola,
+
+M'agradaria fer les pràctiques curriculars a {empresa}. Us adjunto el meu CV.
+
+Moltes gràcies,</textarea></div>
+    </details>
+  </section>
+
+  <!-- 2 -->
+  <section class="step" id="s2">
+    <h2><span class="n">2</span> Revisa</h2>
+    <p class="h">L'app comprova cada fila: si el correu és vàlid, si està repetit, si és una bústia genèrica (info@, ventas@…) i si té CV. Desmarca les que no vulguis enviar.</p>
+    <div class="summary" id="summary"><span class="pill">Encara no has pujat cap CSV</span></div>
+    <div class="tablewrap"><table>
+      <thead><tr><th><input type="checkbox" id="all" aria-label="Seleccionar-ho tot" checked></th><th>Empresa</th><th>Correu</th><th>CV</th><th>Revisió</th></tr></thead>
+      <tbody id="rows"><tr><td colspan="5" class="note">Les files apareixeran aquí.</td></tr></tbody>
+    </table></div>
+  </section>
+
+  <!-- 3 -->
+  <section class="step" id="s3">
+    <h2><span class="n">3</span> Envia</h2>
+    <p class="h">Inicia la sessió amb Google i envia. Hi ha una pausa entre correu i correu perquè Gmail no els marqui com a spam. El <b>mode prova</b> fa tot el procés però no envia res.</p>
+    <div class="row">
+      <div class="field" style="flex:0 1 160px"><label for="delay">Pausa (segons)</label><input id="delay" type="number" min="5" max="600" value="30"></div>
+      <label style="display:flex;gap:8px;align-items:center;flex:0 0 auto;padding-bottom:10px"><input id="dry" type="checkbox" checked> Mode prova</label>
+      <button class="btn" id="btn-login" type="button">Inicia la sessió amb Google</button>
+      <button class="btn primary" id="btn-send" type="button" disabled>Envia les seleccionades</button>
+      <button class="btn" id="btn-stop" type="button" disabled>Atura</button>
+    </div>
+    <div class="bar" aria-hidden="true"><i id="bar"></i></div>
+    <div class="term" id="term" role="log" aria-live="polite"><span class="dim">$ cv-sender preparat. Puja el CSV per començar.</span>
+</div>
+    <div class="row" style="margin-top:12px"><button class="btn" id="btn-export" type="button" disabled>Descarrega el resultat (CSV)</button></div>
+    <details>
+      <summary>Configuració de Google (només la primera vegada)</summary>
+      <p class="note">Per enviar de veritat cal un <b>Client ID</b> de Google amb permís per a l'API de Gmail. Els passos són al <code>README.md</code> del projecte. Si l'app ja en porta un configurat, no cal que facis res.</p>
+      <div class="field"><label for="client-id">Client ID</label><input id="client-id" type="text" placeholder="xxxxxxxx.apps.googleusercontent.com"></div>
+    </details>
+  </section>
+
+  <footer>Les dades i els CVs no surten del teu navegador: els correus s'envien directament des del teu compte de Gmail. Fet per <a href="https://neusfilba.com">Neus Filbà</a>.</footer>
+</div>
+
+<script src="papaparse.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+/* ===== Configuració ===== */
+const DEFAULT_CLIENT_ID = ""; // Posa-hi el teu Client ID de Google per no haver-lo d'escriure cada vegada
+const GENERIC = /^(info|informacion|informacio|comercial|ventas|vendes|sales|contact|contacto|contacte|hola|admin|oficina|office|mail)@/i;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let rows = [], cvFiles = {}, token = null, stopFlag = false, sending = false, results = [];
+
+/* ===== Registre tipus terminal ===== */
+function log(msg, cls=""){ const t=$("#term"); const time=new Date().toLocaleTimeString(); t.insertAdjacentHTML("beforeend", `<span class="dim">[${time}]</span> <span class="${cls}">${esc(msg)}</span>\n`); t.scrollTop=t.scrollHeight; }
+
+/* ===== 1. Pujar fitxers ===== */
+function pick(key){ return r => { for (const k of Object.keys(r)) if (key.includes(k.trim().toLowerCase())) return (r[k]||"").trim(); return ""; }; }
+const getEmpresa = pick(["empresa","company","nom","name"]);
+const getEmail = pick(["email","correu","correo","mail","e-mail"]);
+const getSubj = pick(["assumpte","asunto","subject"]);
+const getBody = pick(["missatge","mensaje","message","cos","body","correu_text","texto"]);
+const getCv = pick(["cv","fitxer","archivo","file","adjunt","attachment"]);
+function fill(tpl, r){ return tpl.replace(/\{([^}]+)\}/g, (m,k) => { const key=Object.keys(r).find(x=>x.trim().toLowerCase()===k.trim().toLowerCase()); return key ? r[key] : (k.toLowerCase()==="empresa" ? getEmpresa(r) : m); }); }
+
+function loadCsv(file){
+  $("#csv-name").textContent = file.name;
+  Papa.parse(file, {header:true, skipEmptyLines:true, complete: res => {
+    rows = res.data.map((r,i) => ({i, raw:r, empresa:getEmpresa(r), email:(getEmail(r).match(/[^\s<>(),;]+@[^\s<>(),;]+/)||[""])[0], subj:getSubj(r), body:getBody(r), cv:getCv(r), on:true}));
+    log(`CSV carregat: ${file.name} (${rows.length} files)`, "acc");
+    validate();
+  }, error: e => log("No s'ha pogut llegir el CSV: " + e.message, "err")});
+}
+function loadCvs(files){
+  for (const f of files) cvFiles[f.name] = f;
+  $("#cv-name").textContent = Object.keys(cvFiles).join(", ");
+  log(`${files.length} CV(s) afegits`, "acc");
+  validate();
+}
+$("#f-csv").addEventListener("change", e => e.target.files[0] && loadCsv(e.target.files[0]));
+$("#f-cv").addEventListener("change", e => loadCvs(e.target.files));
+for (const [id, fn] of [["#drop-csv", f => f[0] && loadCsv(f[0])], ["#drop-cv", f => loadCvs(f)]]) {
+  const d = $(id);
+  d.addEventListener("dragover", e => { e.preventDefault(); d.classList.add("on"); });
+  d.addEventListener("dragleave", () => d.classList.remove("on"));
+  d.addEventListener("drop", e => { e.preventDefault(); d.classList.remove("on"); fn(e.dataTransfer.files); });
+}
+
+/* ===== 2. Revisió ===== */
+function cvFor(r){ if (r.cv && cvFiles[r.cv]) return cvFiles[r.cv]; if (r.cv) return null; const names=Object.keys(cvFiles); return names.length ? cvFiles[names[0]] : null; }
+function validate(){
+  const seen = {};
+  rows.forEach(r => { r.issues = []; r.level = "ok";
+    if (!r.empresa) r.issues.push(["warn","Falta el nom de l'empresa"]);
+    if (!r.email) r.issues.push(["bad","No té correu"]);
+    else if (!EMAIL_RE.test(r.email)) r.issues.push(["bad","El correu no és vàlid"]);
+    else { const k=r.email.toLowerCase(); if (seen[k]) r.issues.push(["warn",`Correu repetit (fila ${seen[k]})`]); else seen[k]=r.i+2;
+      if (GENERIC.test(r.email)) r.issues.push(["warn","Bústia genèrica: pot no arribar a RRHH"]); }
+    const cv = cvFor(r);
+    if (!cv) r.issues.push(["bad", r.cv ? `No trobo el CV «${r.cv}»` : "Falta pujar el CV"]);
+    else if (cv.size > 20*1024*1024) r.issues.push(["bad","El CV pesa més de 20 MB"]);
+    if (r.issues.some(x=>x[0]==="bad")) { r.level="bad"; r.on=false; r.auto=true; } else { if (r.auto){ r.on=true; r.auto=false; } if (r.issues.length) r.level="warn"; }
+  });
+  renderRows();
+}
+function renderRows(){
+  const tb = $("#rows");
+  if (!rows.length){ tb.innerHTML = `<tr><td colspan="5" class="note">Les files apareixeran aquí.</td></tr>`; return; }
+  tb.innerHTML = rows.map(r => `<tr><td><input type="checkbox" data-i="${r.i}" ${r.on?"checked":""} ${r.level==="bad"?"disabled":""} aria-label="Enviar a ${esc(r.empresa)}"></td>
+    <td>${esc(r.empresa||"—")}</td><td>${esc(r.email||"—")}</td><td>${esc(cvFor(r)?.name||"—")}</td>
+    <td class="st">${r.issues.length ? r.issues.map(([l,t])=>`<span class="issue ${l}">${l==="bad"?"✕":"!"} ${esc(t)}</span>`).join("") : `<span class="issue ok">✓ Tot correcte</span>`}</td></tr>`).join("");
+  const ok=rows.filter(r=>r.level==="ok").length, w=rows.filter(r=>r.level==="warn").length, b=rows.filter(r=>r.level==="bad").length, sel=rows.filter(r=>r.on).length;
+  $("#summary").innerHTML = `<span class="pill">${rows.length} files</span><span class="pill ok">${ok} correctes</span><span class="pill warn">${w} amb avisos</span><span class="pill bad">${b} amb errors</span><span class="pill">${sel} seleccionades</span>`;
+  updateButtons();
+}
+$("#rows").addEventListener("change", e => { const i=e.target.dataset.i; if (i!==undefined){ rows[+i].on = e.target.checked; renderRows(); } });
+$("#all").addEventListener("change", e => { rows.forEach(r => { if (r.level!=="bad") r.on = e.target.checked; }); renderRows(); });
+
+/* ===== 3. Google i enviament ===== */
+function clientId(){ return $("#client-id").value.trim() || DEFAULT_CLIENT_ID; }
+try { $("#client-id").value = localStorage.getItem("cvsender.clientId") || ""; } catch(e){}
+$("#client-id").addEventListener("change", () => { try { localStorage.setItem("cvsender.clientId", $("#client-id").value.trim()); } catch(e){} });
+$("#dry").addEventListener("change", updateButtons);
+function updateButtons(){
+  const sel = rows.filter(r=>r.on).length;
+  $("#btn-send").disabled = sending || !sel || (!$("#dry").checked && !token);
+  $("#btn-send").textContent = $("#dry").checked ? `Prova l'enviament (${sel})` : `Envia les seleccionades (${sel})`;
+  $("#btn-stop").disabled = !sending;
+}
+$("#btn-login").addEventListener("click", () => {
+  if (!clientId()){ log("Falta el Client ID de Google. Obre «Configuració de Google» a sota.", "err"); return; }
+  if (!window.google?.accounts?.oauth2){ log("No s'ha pogut carregar l'inici de sessió de Google. Recarrega la pàgina.", "err"); return; }
+  const client = google.accounts.oauth2.initTokenClient({ client_id: clientId(), scope: "https://www.googleapis.com/auth/gmail.send",
+    callback: resp => { if (resp.error){ log("Inici de sessió cancel·lat: " + resp.error, "err"); return; }
+      token = resp.access_token; log("Sessió de Google iniciada. Ja pots enviar.", "ok"); $("#btn-login").textContent = "Sessió iniciada"; $("#dry").checked = false; updateButtons(); } });
+  client.requestAccessToken();
+});
+
+const b64 = s => btoa(unescape(encodeURIComponent(s)));
+const fileB64 = f => new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result.split(",")[1]); fr.onerror = rej; fr.readAsDataURL(f); });
+async function buildRaw(r, cv){
+  const boundary = "cvsender_" + Math.random().toString(36).slice(2);
+  const subj = fill(r.subj || $("#d-subj").value, r.raw), body = fill(r.body || $("#d-body").value, r.raw);
+  const att = (await fileB64(cv)).replace(/.{76}/g, "$&\r\n");
+  const mime = [
+    `To: ${r.email}`, `Subject: =?UTF-8?B?${b64(subj)}?=`, "MIME-Version: 1.0", `Content-Type: multipart/mixed; boundary="${boundary}"`, "",
+    `--${boundary}`, "Content-Type: text/plain; charset=UTF-8", "Content-Transfer-Encoding: base64", "", b64(body).replace(/.{76}/g, "$&\r\n"), "",
+    `--${boundary}`, `Content-Type: application/pdf; name="${cv.name}"`, `Content-Disposition: attachment; filename="${cv.name}"`, "Content-Transfer-Encoding: base64", "", att, "",
+    `--${boundary}--`].join("\r\n");
+  return {raw: btoa(unescape(encodeURIComponent(mime))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""), subj};
+}
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+$("#btn-stop").addEventListener("click", () => { stopFlag = true; log("Aturant després del correu actual…", "err"); });
+$("#btn-send").addEventListener("click", async () => {
+  const list = rows.filter(r => r.on), dry = $("#dry").checked, delay = Math.max(5, +$("#delay").value || 30) * 1000;
+  sending = true; stopFlag = false; results = []; updateButtons();
+  log(`${dry ? "MODE PROVA · " : ""}Començo: ${list.length} candidatures, ${delay/1000} s de pausa`, "acc");
+  for (let k = 0; k < list.length; k++){
+    if (stopFlag) break;
+    const r = list[k], cv = cvFor(r);
+    log(`[${k+1}/${list.length}] ${r.empresa} → ${r.email} (${cv.name})`);
+    try {
+      const {raw, subj} = await buildRaw(r, cv);
+      if (!dry){
+        const res = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {method:"POST", headers:{Authorization:`Bearer ${token}`, "Content-Type":"application/json"}, body: JSON.stringify({raw})});
+        if (!res.ok){ const t = await res.text(); throw new Error(res.status === 401 ? "La sessió de Google ha caducat. Torna a iniciar-la." : `Gmail ha respost ${res.status}: ${t.slice(0,160)}`); }
+      }
+      log(`    ✓ ${dry ? "Preparat (no s'ha enviat)" : "Enviat"} · «${subj}»`, "ok");
+      results.push({...r.raw, estat: dry ? "Prova" : "Enviat", data: new Date().toISOString()});
+    } catch(e){
+      log(`    ✕ Error: ${e.message}`, "err");
+      results.push({...r.raw, estat: "Error: " + e.message, data: new Date().toISOString()});
+      if (String(e.message).includes("caducat")) break;
+    }
+    $("#bar").style.width = ((k+1)/list.length*100) + "%";
+    if (k < list.length-1 && !stopFlag && !dry) { log(`    … espero ${delay/1000} s`, "dim"); await sleep(delay); }
+  }
+  const okN = results.filter(x=>x.estat==="Enviat"||x.estat==="Prova").length;
+  log(`Fet: ${okN} de ${list.length} ${dry ? "preparades en mode prova" : "enviades"}.`, "acc");
+  sending = false; $("#btn-export").disabled = !results.length; updateButtons();
+});
+$("#btn-export").addEventListener("click", () => {
+  const csv = Papa.unparse(results), a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], {type:"text/csv"})); a.download = "resultat_enviament.csv"; a.click();
+});
+</script>
+</body>
+</html>

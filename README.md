@@ -1,2 +1,38 @@
-# automated_csv
-Herramienta de automatización para el envío de currículums a empresas a partir de un archivo CSV. Permite gestionar candidaturas y enviar correos electrónicos personalizados con el CV adjunto, agilizando el proceso de búsqueda de empleo y prácticas profesionales.
+# CV Sender
+
+App web estàtica per enviar candidatures des del teu Gmail: puges un CSV d'empreses i els CVs en PDF, l'app ho revisa (correus vàlids, repetits, bústies genèriques, CV que falta) i envia cada correu amb el CV adjunt, amb un registre en directe. No cal instal·lar res: funciona al navegador, al mòbil i a l'ordinador.
+
+## Format del CSV
+
+| columna | obligatòria | què és |
+|---|---|---|
+| `empresa` | sí | Nom de l'empresa |
+| `email` | sí | Correu de destí (millor el de RRHH) |
+| `cv` | no | Nom del fitxer PDF que vols adjuntar. Si està buit, s'adjunta el primer CV pujat |
+| `assumpte` | no | Assumpte del correu. Si està buit, s'usa el per defecte |
+| `missatge` | no | Text del correu. Admet `{empresa}` i qualsevol altra columna entre claus |
+
+Mira `exemple.csv`.
+
+## Publicar-la a GitHub Pages
+
+1. Crea un repositori nou a GitHub (per exemple `cv-sender`) i puja-hi `index.html`, `exemple.csv` i aquest `README.md`.
+2. Ves a **Settings → Pages**, a *Source* tria **Deploy from a branch**, branca `main`, carpeta `/ (root)` i desa.
+3. Al cap d'un minut tindràs la web a `https://<el-teu-usuari>.github.io/cv-sender/`.
+
+## Configurar Google (una sola vegada, per enviar de veritat)
+
+El **mode prova** funciona sense això. Per enviar correus reals cal un Client ID de Google:
+
+1. Entra a <https://console.cloud.google.com/> i crea un projecte nou.
+2. **APIs i serveis → Biblioteca** → cerca **Gmail API** → *Habilita*.
+3. **APIs i serveis → Pantalla de consentiment OAuth** → tipus *Extern* → omple el nom de l'app i el teu correu. A *Usuaris de prova* afegeix els comptes de Gmail que la faran servir.
+4. **APIs i serveis → Credencials → Crea credencials → ID de client OAuth** → tipus *Aplicació web*. A *Orígens de JavaScript autoritzats* posa `https://<el-teu-usuari>.github.io` (sense barra final).
+5. Copia el Client ID (`…apps.googleusercontent.com`) i enganxa'l a l'app, a *Configuració de Google*. Si vols que hi sigui sempre, posa'l a la constant `DEFAULT_CLIENT_ID` de `index.html`.
+
+### Notes
+
+- Mentre l'app estigui en mode *Testing*, només els usuaris de prova poden iniciar la sessió, i Google mostrarà l'avís «Google no ha verificat aquesta aplicació» (toca *Continua*). Perquè qualsevol persona la pugui fer servir sense aquest límit, cal demanar la verificació de Google per a l'abast `gmail.send`.
+- L'app només demana permís per **enviar** correus, no per llegir-los.
+- Les dades i els CVs no surten del navegador: van directament de l'ordinador a Gmail.
+- Hi ha una pausa entre correus (30 s per defecte) perquè Gmail no els marqui com a spam. Els comptes gratuïts tenen un límit d'uns 500 correus al dia.
