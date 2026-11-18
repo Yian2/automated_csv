@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>CV Sender</title>
-<meta name="description" content="Envia candidatures personalitzades des del teu Gmail: puja un CSV i els CVs, revisa-ho i envia-les amb registre en directe.">
+<meta name="description" content="Envia candidatures personalitzades des del teu Gmail i fes-ne el seguiment · Send personalised job applications from your Gmail and track replies.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap">
 <style>
-/* Layout: tres passos en columna; el registre d'enviament imita una terminal */
+/* Layout: quatre passos en columna; el registre d'enviament imita una terminal */
 :root{
   --bg:#f5f6f8; --surface:#fff; --ink:#151a24; --muted:#5c6475; --line:#e2e5ec; --soft:#eef2ff;
   --accent:#3a66ff; --accent-ink:#fff; --ok:#1f8a5b; --warn:#b7791f; --bad:#c2410c;
@@ -23,8 +23,12 @@
 html,body{margin:0;background:var(--bg);color:var(--ink)}
 body{font:15px/1.5 var(--body)}
 .wrap{max-width:1040px;margin:0 auto;padding:24px max(16px,env(safe-area-inset-right)) 60px max(16px,env(safe-area-inset-left))}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
 h1{font:400 clamp(38px,7vw,60px)/1 var(--display);margin:0;letter-spacing:-.01em}
 h1 em{color:var(--accent)}
+.lang{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--surface);flex:0 0 auto}
+.lang button{appearance:none;border:0;background:none;color:var(--muted);font:500 12.5px var(--mono);padding:5px 10px;border-radius:999px;cursor:pointer}
+.lang button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
 .lede{color:var(--muted);max-width:62ch;margin:10px 0 0}
 .step{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;margin-top:18px}
 .step h2{font:600 18px var(--body);margin:0 0 4px;display:flex;gap:10px;align-items:center}
@@ -41,17 +45,17 @@ textarea{min-height:150px;resize:vertical}
 .btn{appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:10px 16px;font:500 14px var(--body);cursor:pointer;display:inline-flex;gap:6px;align-items:center}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .btn:disabled{opacity:.45;cursor:default}
-.btn:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn:focus-visible,input:focus-visible,textarea:focus-visible,.lang button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .summary{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 12px}
 .pill{font:500 12.5px var(--mono);border-radius:999px;padding:3px 10px;border:1px solid var(--line)}
-.pill.ok{color:var(--ok);border-color:var(--ok)} .pill.warn{color:var(--warn);border-color:var(--warn)} .pill.bad{color:var(--bad);border-color:var(--bad)}
+.pill.ok{color:var(--ok);border-color:var(--ok)} .pill.warn{color:var(--warn);border-color:var(--warn)} .pill.bad{color:var(--bad);border-color:var(--bad)} .pill.acc{color:var(--accent);border-color:var(--accent)}
 .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
 table{border-collapse:collapse;width:100%;min-width:720px;font-size:13.5px}
 th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
 th{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);background:var(--bg);position:sticky;top:0}
-td.st{white-space:nowrap}
+td.st{white-space:nowrap} td.num{font-family:var(--mono)}
 .issue{display:block;font-size:12px}
-.issue.warn{color:var(--warn)} .issue.bad{color:var(--bad)} .issue.ok{color:var(--ok)}
+.issue.warn{color:var(--warn)} .issue.bad{color:var(--bad)} .issue.ok{color:var(--ok)} .issue.mut{color:var(--muted)} .issue.acc{color:var(--accent)}
 .term{background:var(--term-bg);color:var(--term-ink);font:13px/1.6 var(--mono);border-radius:12px;padding:14px;height:300px;overflow:auto;white-space:pre-wrap;word-break:break-word}
 .term .ok{color:#3ccf8e} .term .err{color:#f07a4a} .term .dim{color:#7c8496} .term .acc{color:#8aa2ff}
 .bar{height:6px;background:var(--line);border-radius:999px;overflow:hidden;margin:12px 0}
@@ -59,6 +63,7 @@ td.st{white-space:nowrap}
 .note{font-size:13px;color:var(--muted)}
 details{margin-top:10px} summary{cursor:pointer;color:var(--accent)}
 code{font-family:var(--mono);font-size:.92em;background:var(--soft);padding:1px 5px;border-radius:5px}
+a{color:var(--accent)}
 footer{color:var(--muted);font-size:13px;margin-top:28px}
 @media (prefers-reduced-motion:reduce){.bar i{transition:none}}
 </style>
@@ -66,66 +71,84 @@ footer{color:var(--muted);font-size:13px;margin-top:28px}
 <body>
 <div class="wrap">
   <header>
-    <h1>CV <em>Sender</em></h1>
-    <p class="lede">Puja un CSV amb les empreses i els teus CVs. L'app ho revisa tot, et mostra els problemes i envia cada candidatura des del teu Gmail, amb el seu CV adjunt i un registre en directe.</p>
+    <div class="top">
+      <h1>CV <em>Sender</em></h1>
+      <div class="lang" role="group" aria-label="Idioma / Language">
+        <button type="button" data-lang="ca">CA</button><button type="button" data-lang="es">ES</button><button type="button" data-lang="en">EN</button>
+      </div>
+    </div>
+    <p class="lede" data-i18n="lede"></p>
   </header>
 
   <!-- 1 -->
   <section class="step" id="s1">
-    <h2><span class="n">1</span> Puja les dades</h2>
-    <p class="h">Columnes del CSV: <code>empresa</code>, <code>email</code> i, si vols, <code>assumpte</code>, <code>missatge</code> i <code>cv</code> (nom del fitxer PDF). <a href="exemple.csv" download>Descarrega un CSV d'exemple</a>.</p>
+    <h2><span class="n">1</span> <span data-i18n="s1h"></span></h2>
+    <p class="h" data-i18n-html="s1p"></p>
     <div class="row">
-      <label class="drop" id="drop-csv" for="f-csv"><b>CSV d'empreses</b><br><span id="csv-name">Arrossega'l aquí o toca per triar-lo</span>
+      <label class="drop" id="drop-csv" for="f-csv"><b data-i18n="csvB"></b><br><span id="csv-name" data-i18n="csvS"></span>
         <input id="f-csv" type="file" accept=".csv,text/csv" hidden></label>
-      <label class="drop" id="drop-cv" for="f-cv"><b>CVs en PDF</b><br><span id="cv-name">Un o més fitxers. Si una fila no en diu cap, s'adjunta el primer.</span>
+      <label class="drop" id="drop-cv" for="f-cv"><b data-i18n="cvB"></b><br><span id="cv-name" data-i18n="cvS"></span>
         <input id="f-cv" type="file" accept="application/pdf" multiple hidden></label>
     </div>
     <details>
-      <summary>Assumpte i missatge per defecte (per a les files que no en porten)</summary>
-      <p class="note">Pots fer servir <code>{empresa}</code> i qualsevol altra columna del CSV entre claus, per exemple <code>{poble}</code>.</p>
-      <div class="field"><label for="d-subj">Assumpte</label><input id="d-subj" type="text" value="Pràctiques curriculars – {empresa}"></div>
-      <div class="field" style="margin-top:10px"><label for="d-body">Missatge</label><textarea id="d-body">Hola,
-
-M'agradaria fer les pràctiques curriculars a {empresa}. Us adjunto el meu CV.
-
-Moltes gràcies,</textarea></div>
+      <summary data-i18n="defSum"></summary>
+      <p class="note" data-i18n-html="defNote"></p>
+      <div class="field"><label for="d-subj" data-i18n="subjL"></label><input id="d-subj" type="text"></div>
+      <div class="field" style="margin-top:10px"><label for="d-body" data-i18n="bodyL"></label><textarea id="d-body"></textarea></div>
     </details>
   </section>
 
   <!-- 2 -->
   <section class="step" id="s2">
-    <h2><span class="n">2</span> Revisa</h2>
-    <p class="h">L'app comprova cada fila: si el correu és vàlid, si està repetit, si és una bústia genèrica (info@, ventas@…) i si té CV. Desmarca les que no vulguis enviar.</p>
-    <div class="summary" id="summary"><span class="pill">Encara no has pujat cap CSV</span></div>
+    <h2><span class="n">2</span> <span data-i18n="s2h"></span></h2>
+    <p class="h" data-i18n="s2p"></p>
+    <div class="summary" id="summary"></div>
     <div class="tablewrap"><table>
-      <thead><tr><th><input type="checkbox" id="all" aria-label="Seleccionar-ho tot" checked></th><th>Empresa</th><th>Correu</th><th>CV</th><th>Revisió</th></tr></thead>
-      <tbody id="rows"><tr><td colspan="5" class="note">Les files apareixeran aquí.</td></tr></tbody>
+      <thead><tr><th><input type="checkbox" id="all" checked></th><th data-i18n="thEmp"></th><th data-i18n="thMail"></th><th>CV</th><th data-i18n="thRev"></th></tr></thead>
+      <tbody id="rows"></tbody>
     </table></div>
   </section>
 
   <!-- 3 -->
   <section class="step" id="s3">
-    <h2><span class="n">3</span> Envia</h2>
-    <p class="h">Inicia la sessió amb Google i envia. Hi ha una pausa entre correu i correu perquè Gmail no els marqui com a spam. El <b>mode prova</b> fa tot el procés però no envia res.</p>
+    <h2><span class="n">3</span> <span data-i18n="s3h"></span></h2>
+    <p class="h" data-i18n-html="s3p"></p>
     <div class="row">
-      <div class="field" style="flex:0 1 160px"><label for="delay">Pausa (segons)</label><input id="delay" type="number" min="5" max="600" value="30"></div>
-      <label style="display:flex;gap:8px;align-items:center;flex:0 0 auto;padding-bottom:10px"><input id="dry" type="checkbox" checked> Mode prova</label>
-      <button class="btn" id="btn-login" type="button">Inicia la sessió amb Google</button>
-      <button class="btn primary" id="btn-send" type="button" disabled>Envia les seleccionades</button>
-      <button class="btn" id="btn-stop" type="button" disabled>Atura</button>
+      <div class="field" style="flex:0 1 160px"><label for="delay" data-i18n="delayL"></label><input id="delay" type="number" min="5" max="600" value="30"></div>
+      <label style="display:flex;gap:8px;align-items:center;flex:0 0 auto;padding-bottom:10px"><input id="dry" type="checkbox" checked> <span data-i18n="dryL"></span></label>
+      <button class="btn" id="btn-login" type="button"></button>
+      <button class="btn primary" id="btn-send" type="button" disabled></button>
+      <button class="btn" id="btn-stop" type="button" disabled data-i18n="stop"></button>
     </div>
     <div class="bar" aria-hidden="true"><i id="bar"></i></div>
-    <div class="term" id="term" role="log" aria-live="polite"><span class="dim">$ cv-sender preparat. Puja el CSV per començar.</span>
-</div>
-    <div class="row" style="margin-top:12px"><button class="btn" id="btn-export" type="button" disabled>Descarrega el resultat (CSV)</button></div>
+    <div class="term" id="term" role="log" aria-live="polite"></div>
+    <div class="row" style="margin-top:12px"><button class="btn" id="btn-export" type="button" disabled data-i18n="export"></button></div>
     <details>
-      <summary>Configuració de Google (només la primera vegada)</summary>
-      <p class="note">Per enviar de veritat cal un <b>Client ID</b> de Google amb permís per a l'API de Gmail. Els passos són al <code>README.md</code> del projecte. Si l'app ja en porta un configurat, no cal que facis res.</p>
+      <summary data-i18n="gSum"></summary>
+      <p class="note" data-i18n-html="gNote"></p>
       <div class="field"><label for="client-id">Client ID</label><input id="client-id" type="text" placeholder="xxxxxxxx.apps.googleusercontent.com"></div>
     </details>
   </section>
 
-  <footer>Les dades i els CVs no surten del teu navegador: els correus s'envien directament des del teu compte de Gmail. Fet per <a href="https://neusfilba.com">Neus Filbà</a>.</footer>
+  <!-- 4 -->
+  <section class="step" id="s4">
+    <h2><span class="n">4</span> <span data-i18n="s4h"></span></h2>
+    <p class="h" data-i18n="s4p"></p>
+    <div class="row" style="margin-bottom:12px">
+      <button class="btn primary" id="btn-check" type="button" data-i18n="check"></button>
+      <button class="btn" id="btn-hexport" type="button" data-i18n="hExport"></button>
+      <label class="btn" for="f-hist" style="margin:0"><span data-i18n="hImport"></span><input id="f-hist" type="file" accept=".csv,text/csv" hidden></label>
+      <button class="btn" id="btn-hclear" type="button" data-i18n="hClear"></button>
+    </div>
+    <div class="summary" id="hsummary"></div>
+    <div class="tablewrap"><table>
+      <thead><tr><th data-i18n="thEmp"></th><th data-i18n="thMail"></th><th data-i18n="thSent"></th><th data-i18n="thStatus"></th><th data-i18n="thReplies"></th><th data-i18n="thLast"></th><th></th></tr></thead>
+      <tbody id="hrows"></tbody>
+    </table></div>
+    <p class="note" data-i18n="readNote" style="margin-top:12px"></p>
+  </section>
+
+  <footer data-i18n-html="footer"></footer>
 </div>
 
 <script src="papaparse.min.js"></script>
@@ -133,37 +156,140 @@ Moltes gràcies,</textarea></div>
 <script>
 /* ===== Configuració ===== */
 const DEFAULT_CLIENT_ID = ""; // Posa-hi el teu Client ID de Google per no haver-lo d'escriure cada vegada
+const SCOPES = "https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.metadata";
 const GENERIC = /^(info|informacion|informacio|comercial|ventas|vendes|sales|contact|contacto|contacte|hola|admin|oficina|office|mail)@/i;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const FOLLOW_DAYS = 7;
+
+/* ===== Textos (CA / ES / EN) ===== */
+const T = {
+ca:{
+ lede:"Puja un CSV amb les empreses i els teus CVs. L'app ho revisa tot, envia cada candidatura des del teu Gmail amb el seu CV adjunt i després et diu qui t'ha respost.",
+ s1h:"Puja les dades", s1p:'Columnes del CSV: <code>empresa</code>, <code>email</code> i, si vols, <code>assumpte</code>, <code>missatge</code> i <code>cv</code> (nom del fitxer PDF). <a href="exemple.csv" download>Descarrega un CSV d\'exemple</a>.',
+ csvB:"CSV d'empreses", csvS:"Arrossega'l aquí o toca per triar-lo", cvB:"CVs en PDF", cvS:"Un o més fitxers. Si una fila no en diu cap, s'adjunta el primer.",
+ defSum:"Assumpte i missatge per defecte (per a les files que no en porten)", defNote:"Pots fer servir <code>{empresa}</code> i qualsevol altra columna del CSV entre claus, per exemple <code>{poble}</code>.",
+ subjL:"Assumpte", bodyL:"Missatge", defSubj:"Pràctiques curriculars – {empresa}", defBody:"Hola,\n\nM'agradaria fer les pràctiques curriculars a {empresa}. Us adjunto el meu CV.\n\nMoltes gràcies,",
+ s2h:"Revisa", s2p:"L'app comprova cada fila: si el correu és vàlid, si està repetit, si és una bústia genèrica (info@, ventas@…) i si té CV. Desmarca les que no vulguis enviar.",
+ thEmp:"Empresa", thMail:"Correu", thRev:"Revisió", rowsEmpty:"Les files apareixeran aquí.", noCsv:"Encara no has pujat cap CSV",
+ pRows:"{n} files", pOk:"{n} correctes", pWarn:"{n} amb avisos", pBad:"{n} amb errors", pSel:"{n} seleccionades",
+ iNoEmp:"Falta el nom de l'empresa", iNoMail:"No té correu", iBadMail:"El correu no és vàlid", iDup:"Correu repetit (fila {n})", iGen:"Bústia genèrica: pot no arribar a RRHH", iNoCvF:"No trobo el CV «{f}»", iNoCv:"Falta pujar el CV", iBig:"El CV pesa més de 20 MB", iOk:"Tot correcte",
+ s3h:"Envia", s3p:"Inicia la sessió amb Google i envia. Hi ha una pausa entre correu i correu perquè Gmail no els marqui com a spam. El <b>mode prova</b> fa tot el procés però no envia res.",
+ delayL:"Pausa (segons)", dryL:"Mode prova", login:"Inicia la sessió amb Google", logged:"Sessió iniciada", sendDry:"Prova l'enviament ({n})", send:"Envia les seleccionades ({n})", stop:"Atura", export:"Descarrega el resultat (CSV)",
+ gSum:"Configuració de Google (només la primera vegada)", gNote:"Per enviar de veritat cal un <b>Client ID</b> de Google amb l'API de Gmail activada. Els passos són al <code>README.md</code>. Si l'app ja en porta un, no cal que facis res.",
+ s4h:"Seguiment", s4p:"Les candidatures enviades es guarden en aquest navegador. Toca «Comprova respostes» i l'app mira a Gmail qui t'ha respost, quantes vegades i si algun correu ha rebotat.",
+ check:"Comprova respostes", hExport:"Exporta", hImport:"Importa CSV", hClear:"Buida", hConfirm:"Vols esborrar tot l'historial de seguiment d'aquest navegador?",
+ thSent:"Enviat", thStatus:"Estat", thReplies:"Respostes", thLast:"Última resposta", hEmpty:"Encara no has enviat cap candidatura des d'aquest navegador.", open:"Obre a Gmail",
+ stPending:"Sense comprovar", stNone:"Sense resposta", stFollow:"Fa {d} dies: pots fer-ne un seguiment", stReplied:"Ha respost", stBounced:"Ha rebotat (adreça incorrecta)", stErr:"No s'ha trobat a Gmail",
+ hTotal:"{n} enviades", hRep:"{n} amb resposta", hNone:"{n} sense resposta", hBounce:"{n} rebotades", hRate:"{n}% de resposta", checkedAt:"Comprovat {t}",
+ readNote:"Gmail no avisa quan algú obre un correu, així que l'app no pot saber si l'han llegit ni quantes vegades. Sí que veu les respostes i els rebots.",
+ footer:'Les dades i els CVs no surten del teu navegador: els correus s\'envien directament des del teu compte de Gmail. Fet per <a href="https://neusfilba.com">Neus Filbà</a>.',
+ lReady:"$ cv-sender preparat. Puja el CSV per començar.", lCsv:"CSV carregat: {f} ({n} files)", lCsvErr:"No s'ha pogut llegir el CSV: {e}", lCvs:"{n} CV(s) afegits",
+ lNoCid:"Falta el Client ID de Google. Obre «Configuració de Google» al pas 3.", lNoGsi:"No s'ha pogut carregar l'inici de sessió de Google. Recarrega la pàgina.", lCancel:"Inici de sessió cancel·lat: {e}", lLogged:"Sessió de Google iniciada.",
+ lStart:"Començo: {n} candidatures, {s} s de pausa", lDryTag:"MODE PROVA · ", lOkDry:"✓ Preparat (no s'ha enviat)", lOk:"✓ Enviat", lErr:"✕ Error: {e}", lWait:"… espero {s} s", lStopping:"Aturant després del correu actual…",
+ lDoneDry:"Fet: {k} de {n} preparades en mode prova.", lDone:"Fet: {k} de {n} enviades.", lExpired:"La sessió de Google ha caducat. Torna a iniciar-la.", lGmail:"Gmail ha respost {s}: {t}",
+ lCheck:"Comprovant respostes de {n} candidatures…", lChecked:"Comprovat: {r} amb resposta, {b} rebotades, {x} sense resposta.", lNoScope:"Google no t'ha donat permís per llegir l'estat dels correus. Torna a iniciar la sessió i accepta tots els permisos.", lImported:"Importades {n} candidatures al seguiment.", lImpNone:"Aquest CSV no té la columna threadId (fes servir el que exporta l'app)."
+},
+es:{
+ lede:"Sube un CSV con las empresas y tus CVs. La app lo revisa todo, envía cada candidatura desde tu Gmail con su CV adjunto y después te dice quién te ha respondido.",
+ s1h:"Sube los datos", s1p:'Columnas del CSV: <code>empresa</code>, <code>email</code> y, si quieres, <code>asunto</code>, <code>mensaje</code> y <code>cv</code> (nombre del archivo PDF). <a href="exemple.csv" download>Descarga un CSV de ejemplo</a>.',
+ csvB:"CSV de empresas", csvS:"Arrástralo aquí o toca para elegirlo", cvB:"CVs en PDF", cvS:"Uno o varios archivos. Si una fila no indica ninguno, se adjunta el primero.",
+ defSum:"Asunto y mensaje por defecto (para las filas que no los llevan)", defNote:"Puedes usar <code>{empresa}</code> y cualquier otra columna del CSV entre llaves, por ejemplo <code>{pueblo}</code>.",
+ subjL:"Asunto", bodyL:"Mensaje", defSubj:"Prácticas curriculares – {empresa}", defBody:"Hola,\n\nMe gustaría hacer las prácticas curriculares en {empresa}. Os adjunto mi CV.\n\nMuchas gracias,",
+ s2h:"Revisa", s2p:"La app comprueba cada fila: si el correo es válido, si está repetido, si es un buzón genérico (info@, ventas@…) y si tiene CV. Desmarca las que no quieras enviar.",
+ thEmp:"Empresa", thMail:"Correo", thRev:"Revisión", rowsEmpty:"Las filas aparecerán aquí.", noCsv:"Todavía no has subido ningún CSV",
+ pRows:"{n} filas", pOk:"{n} correctas", pWarn:"{n} con avisos", pBad:"{n} con errores", pSel:"{n} seleccionadas",
+ iNoEmp:"Falta el nombre de la empresa", iNoMail:"No tiene correo", iBadMail:"El correo no es válido", iDup:"Correo repetido (fila {n})", iGen:"Buzón genérico: puede no llegar a RRHH", iNoCvF:"No encuentro el CV «{f}»", iNoCv:"Falta subir el CV", iBig:"El CV pesa más de 20 MB", iOk:"Todo correcto",
+ s3h:"Envía", s3p:"Inicia sesión con Google y envía. Hay una pausa entre correo y correo para que Gmail no los marque como spam. El <b>modo prueba</b> hace todo el proceso pero no envía nada.",
+ delayL:"Pausa (segundos)", dryL:"Modo prueba", login:"Inicia sesión con Google", logged:"Sesión iniciada", sendDry:"Prueba el envío ({n})", send:"Envía las seleccionadas ({n})", stop:"Detener", export:"Descarga el resultado (CSV)",
+ gSum:"Configuración de Google (solo la primera vez)", gNote:"Para enviar de verdad hace falta un <b>Client ID</b> de Google con la API de Gmail activada. Los pasos están en el <code>README.md</code>. Si la app ya lleva uno, no tienes que hacer nada.",
+ s4h:"Seguimiento", s4p:"Las candidaturas enviadas se guardan en este navegador. Pulsa «Comprueba respuestas» y la app mira en Gmail quién te ha respondido, cuántas veces y si algún correo ha rebotado.",
+ check:"Comprueba respuestas", hExport:"Exporta", hImport:"Importa CSV", hClear:"Vacía", hConfirm:"¿Quieres borrar todo el historial de seguimiento de este navegador?",
+ thSent:"Enviado", thStatus:"Estado", thReplies:"Respuestas", thLast:"Última respuesta", hEmpty:"Todavía no has enviado ninguna candidatura desde este navegador.", open:"Abrir en Gmail",
+ stPending:"Sin comprobar", stNone:"Sin respuesta", stFollow:"Hace {d} días: puedes hacer un seguimiento", stReplied:"Ha respondido", stBounced:"Ha rebotado (dirección incorrecta)", stErr:"No se ha encontrado en Gmail",
+ hTotal:"{n} enviadas", hRep:"{n} con respuesta", hNone:"{n} sin respuesta", hBounce:"{n} rebotadas", hRate:"{n}% de respuesta", checkedAt:"Comprobado {t}",
+ readNote:"Gmail no avisa cuando alguien abre un correo, así que la app no puede saber si lo han leído ni cuántas veces. Sí ve las respuestas y los rebotes.",
+ footer:'Los datos y los CVs no salen de tu navegador: los correos se envían directamente desde tu cuenta de Gmail. Hecho por <a href="https://neusfilba.com">Neus Filbà</a>.',
+ lReady:"$ cv-sender listo. Sube el CSV para empezar.", lCsv:"CSV cargado: {f} ({n} filas)", lCsvErr:"No se ha podido leer el CSV: {e}", lCvs:"{n} CV(s) añadidos",
+ lNoCid:"Falta el Client ID de Google. Abre «Configuración de Google» en el paso 3.", lNoGsi:"No se ha podido cargar el inicio de sesión de Google. Recarga la página.", lCancel:"Inicio de sesión cancelado: {e}", lLogged:"Sesión de Google iniciada.",
+ lStart:"Empiezo: {n} candidaturas, {s} s de pausa", lDryTag:"MODO PRUEBA · ", lOkDry:"✓ Preparado (no se ha enviado)", lOk:"✓ Enviado", lErr:"✕ Error: {e}", lWait:"… espero {s} s", lStopping:"Deteniendo después del correo actual…",
+ lDoneDry:"Hecho: {k} de {n} preparadas en modo prueba.", lDone:"Hecho: {k} de {n} enviadas.", lExpired:"La sesión de Google ha caducado. Vuelve a iniciarla.", lGmail:"Gmail ha respondido {s}: {t}",
+ lCheck:"Comprobando respuestas de {n} candidaturas…", lChecked:"Comprobado: {r} con respuesta, {b} rebotadas, {x} sin respuesta.", lNoScope:"Google no te ha dado permiso para leer el estado de los correos. Vuelve a iniciar sesión y acepta todos los permisos.", lImported:"Importadas {n} candidaturas al seguimiento.", lImpNone:"Este CSV no tiene la columna threadId (usa el que exporta la app)."
+},
+en:{
+ lede:"Upload a CSV with the companies and your CVs. The app checks everything, sends each application from your Gmail with its CV attached, and then shows you who has replied.",
+ s1h:"Upload your data", s1p:'CSV columns: <code>company</code>, <code>email</code> and, optionally, <code>subject</code>, <code>message</code> and <code>cv</code> (PDF file name). <a href="exemple.csv" download>Download a sample CSV</a>.',
+ csvB:"Companies CSV", csvS:"Drop it here or tap to choose it", cvB:"CVs (PDF)", cvS:"One or more files. If a row doesn't name one, the first is attached.",
+ defSum:"Default subject and message (for rows without one)", defNote:"You can use <code>{empresa}</code> or <code>{company}</code> and any other CSV column in braces, e.g. <code>{town}</code>.",
+ subjL:"Subject", bodyL:"Message", defSubj:"Internship application – {empresa}", defBody:"Hello,\n\nI would like to do my internship at {empresa}. Please find my CV attached.\n\nKind regards,",
+ s2h:"Review", s2p:"The app checks each row: whether the email is valid, duplicated or a generic inbox (info@, sales@…), and whether it has a CV. Untick any you don't want to send.",
+ thEmp:"Company", thMail:"Email", thRev:"Check", rowsEmpty:"Rows will appear here.", noCsv:"No CSV uploaded yet",
+ pRows:"{n} rows", pOk:"{n} OK", pWarn:"{n} with warnings", pBad:"{n} with errors", pSel:"{n} selected",
+ iNoEmp:"Company name missing", iNoMail:"No email", iBadMail:"Invalid email", iDup:"Duplicate email (row {n})", iGen:"Generic inbox: may not reach HR", iNoCvF:"CV “{f}” not found", iNoCv:"No CV uploaded", iBig:"CV is larger than 20 MB", iOk:"All good",
+ s3h:"Send", s3p:"Sign in with Google and send. There's a pause between emails so Gmail doesn't flag them as spam. <b>Test mode</b> runs the whole process without sending anything.",
+ delayL:"Pause (seconds)", dryL:"Test mode", login:"Sign in with Google", logged:"Signed in", sendDry:"Test send ({n})", send:"Send selected ({n})", stop:"Stop", export:"Download results (CSV)",
+ gSum:"Google setup (first time only)", gNote:"To send for real you need a Google <b>Client ID</b> with the Gmail API enabled. The steps are in <code>README.md</code>. If the app already has one, you don't need to do anything.",
+ s4h:"Tracking", s4p:"Sent applications are saved in this browser. Tap “Check replies” and the app looks in Gmail for who replied, how many times, and whether any email bounced.",
+ check:"Check replies", hExport:"Export", hImport:"Import CSV", hClear:"Clear", hConfirm:"Delete all tracking history from this browser?",
+ thSent:"Sent", thStatus:"Status", thReplies:"Replies", thLast:"Last reply", hEmpty:"You haven't sent any applications from this browser yet.", open:"Open in Gmail",
+ stPending:"Not checked", stNone:"No reply", stFollow:"{d} days ago: consider following up", stReplied:"Replied", stBounced:"Bounced (wrong address)", stErr:"Not found in Gmail",
+ hTotal:"{n} sent", hRep:"{n} replied", hNone:"{n} no reply", hBounce:"{n} bounced", hRate:"{n}% reply rate", checkedAt:"Checked {t}",
+ readNote:"Gmail doesn't report when someone opens an email, so the app can't tell whether it was read or how many times. It does see replies and bounces.",
+ footer:'Your data and CVs never leave your browser: emails are sent directly from your Gmail account. Made by <a href="https://neusfilba.com">Neus Filbà</a>.',
+ lReady:"$ cv-sender ready. Upload the CSV to start.", lCsv:"CSV loaded: {f} ({n} rows)", lCsvErr:"Couldn't read the CSV: {e}", lCvs:"{n} CV(s) added",
+ lNoCid:"Google Client ID missing. Open “Google setup” in step 3.", lNoGsi:"Couldn't load Google sign-in. Reload the page.", lCancel:"Sign-in cancelled: {e}", lLogged:"Signed in to Google.",
+ lStart:"Starting: {n} applications, {s} s pause", lDryTag:"TEST MODE · ", lOkDry:"✓ Prepared (not sent)", lOk:"✓ Sent", lErr:"✕ Error: {e}", lWait:"… waiting {s} s", lStopping:"Stopping after the current email…",
+ lDoneDry:"Done: {k} of {n} prepared in test mode.", lDone:"Done: {k} of {n} sent.", lExpired:"Your Google session expired. Sign in again.", lGmail:"Gmail answered {s}: {t}",
+ lCheck:"Checking replies for {n} applications…", lChecked:"Checked: {r} replied, {b} bounced, {x} no reply.", lNoScope:"Google didn't grant permission to read email status. Sign in again and accept all permissions.", lImported:"Imported {n} applications into tracking.", lImpNone:"This CSV has no threadId column (use the one the app exports)."
+}};
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-let rows = [], cvFiles = {}, token = null, stopFlag = false, sending = false, results = [];
+const store = { get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }, set(k,v){ try { localStorage.setItem(k,v); } catch(e){} } };
+let lang = store.get("cvsender.lang") || ({ca:"ca",es:"es"}[(navigator.language||"").slice(0,2)] || "en");
+const t = (k, v={}) => (T[lang][k] ?? T.ca[k] ?? k).replace(/\{(\w+)\}/g, (m,x) => x in v ? v[x] : m);
+let rows = [], cvFiles = {}, token = null, tokenExp = 0, tokenClient = null, pendingCb = null, stopFlag = false, sending = false, results = [];
+let hist = []; try { hist = JSON.parse(store.get("cvsender.history") || "[]"); } catch(e){ hist = []; }
+const saveHist = () => store.set("cvsender.history", JSON.stringify(hist));
+
+/* ===== Idioma ===== */
+function applyLang(newLang){
+  const oldSubj = $("#d-subj").value, oldBody = $("#d-body").value;
+  const isDefault = !oldSubj || Object.values(T).some(L => L.defSubj === oldSubj && L.defBody === oldBody);
+  lang = newLang; store.set("cvsender.lang", lang); document.documentElement.lang = lang;
+  document.querySelectorAll("[data-i18n]").forEach(el => { if (!el.dataset.fixed) el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll("[data-i18n-html]").forEach(el => el.innerHTML = t(el.dataset.i18nHtml));
+  document.querySelectorAll(".lang button").forEach(b => b.setAttribute("aria-pressed", b.dataset.lang === lang));
+  $("#all").setAttribute("aria-label", t("pSel", {n:""}).trim());
+  if (isDefault){ $("#d-subj").value = t("defSubj"); $("#d-body").value = t("defBody"); }
+  $("#btn-login").textContent = token ? t("logged") : t("login");
+  renderRows(); renderHist(); updateButtons();
+}
+document.querySelectorAll(".lang button").forEach(b => b.addEventListener("click", () => applyLang(b.dataset.lang)));
 
 /* ===== Registre tipus terminal ===== */
-function log(msg, cls=""){ const t=$("#term"); const time=new Date().toLocaleTimeString(); t.insertAdjacentHTML("beforeend", `<span class="dim">[${time}]</span> <span class="${cls}">${esc(msg)}</span>\n`); t.scrollTop=t.scrollHeight; }
+function log(msg, cls=""){ const el=$("#term"); const time=new Date().toLocaleTimeString(); el.insertAdjacentHTML("beforeend", `<span class="dim">[${time}]</span> <span class="${cls}">${esc(msg)}</span>\n`); el.scrollTop=el.scrollHeight; }
 
 /* ===== 1. Pujar fitxers ===== */
-function pick(key){ return r => { for (const k of Object.keys(r)) if (key.includes(k.trim().toLowerCase())) return (r[k]||"").trim(); return ""; }; }
-const getEmpresa = pick(["empresa","company","nom","name"]);
+function pick(keys){ return r => { for (const k of Object.keys(r)) if (keys.includes(k.trim().toLowerCase())) return (r[k]||"").trim(); return ""; }; }
+const getEmpresa = pick(["empresa","company","nom","name","nombre"]);
 const getEmail = pick(["email","correu","correo","mail","e-mail"]);
 const getSubj = pick(["assumpte","asunto","subject"]);
-const getBody = pick(["missatge","mensaje","message","cos","body","correu_text","texto"]);
+const getBody = pick(["missatge","mensaje","message","cos","body","texto"]);
 const getCv = pick(["cv","fitxer","archivo","file","adjunt","attachment"]);
-function fill(tpl, r){ return tpl.replace(/\{([^}]+)\}/g, (m,k) => { const key=Object.keys(r).find(x=>x.trim().toLowerCase()===k.trim().toLowerCase()); return key ? r[key] : (k.toLowerCase()==="empresa" ? getEmpresa(r) : m); }); }
+function fill(tpl, r){ return tpl.replace(/\{([^}]+)\}/g, (m,k) => { const key=Object.keys(r).find(x=>x.trim().toLowerCase()===k.trim().toLowerCase()); return key ? r[key] : (["empresa","company"].includes(k.toLowerCase()) ? getEmpresa(r) : m); }); }
 
 function loadCsv(file){
-  $("#csv-name").textContent = file.name;
+  const n = $("#csv-name"); n.textContent = file.name; n.dataset.fixed = 1;
   Papa.parse(file, {header:true, skipEmptyLines:true, complete: res => {
     rows = res.data.map((r,i) => ({i, raw:r, empresa:getEmpresa(r), email:(getEmail(r).match(/[^\s<>(),;]+@[^\s<>(),;]+/)||[""])[0], subj:getSubj(r), body:getBody(r), cv:getCv(r), on:true}));
-    log(`CSV carregat: ${file.name} (${rows.length} files)`, "acc");
+    log(t("lCsv", {f:file.name, n:rows.length}), "acc");
     validate();
-  }, error: e => log("No s'ha pogut llegir el CSV: " + e.message, "err")});
+  }, error: e => log(t("lCsvErr", {e:e.message}), "err")});
 }
 function loadCvs(files){
   for (const f of files) cvFiles[f.name] = f;
-  $("#cv-name").textContent = Object.keys(cvFiles).join(", ");
-  log(`${files.length} CV(s) afegits`, "acc");
+  const n = $("#cv-name"); n.textContent = Object.keys(cvFiles).join(", "); n.dataset.fixed = 1;
+  log(t("lCvs", {n:files.length}), "acc");
   validate();
 }
 $("#f-csv").addEventListener("change", e => e.target.files[0] && loadCsv(e.target.files[0]));
@@ -180,51 +306,58 @@ function cvFor(r){ if (r.cv && cvFiles[r.cv]) return cvFiles[r.cv]; if (r.cv) re
 function validate(){
   const seen = {};
   rows.forEach(r => { r.issues = []; r.level = "ok";
-    if (!r.empresa) r.issues.push(["warn","Falta el nom de l'empresa"]);
-    if (!r.email) r.issues.push(["bad","No té correu"]);
-    else if (!EMAIL_RE.test(r.email)) r.issues.push(["bad","El correu no és vàlid"]);
-    else { const k=r.email.toLowerCase(); if (seen[k]) r.issues.push(["warn",`Correu repetit (fila ${seen[k]})`]); else seen[k]=r.i+2;
-      if (GENERIC.test(r.email)) r.issues.push(["warn","Bústia genèrica: pot no arribar a RRHH"]); }
+    if (!r.empresa) r.issues.push(["warn","iNoEmp"]);
+    if (!r.email) r.issues.push(["bad","iNoMail"]);
+    else if (!EMAIL_RE.test(r.email)) r.issues.push(["bad","iBadMail"]);
+    else { const k=r.email.toLowerCase(); if (seen[k]) r.issues.push(["warn","iDup",{n:seen[k]}]); else seen[k]=r.i+2;
+      if (GENERIC.test(r.email)) r.issues.push(["warn","iGen"]); }
     const cv = cvFor(r);
-    if (!cv) r.issues.push(["bad", r.cv ? `No trobo el CV «${r.cv}»` : "Falta pujar el CV"]);
-    else if (cv.size > 20*1024*1024) r.issues.push(["bad","El CV pesa més de 20 MB"]);
-    if (r.issues.some(x=>x[0]==="bad")) { r.level="bad"; r.on=false; r.auto=true; } else { if (r.auto){ r.on=true; r.auto=false; } if (r.issues.length) r.level="warn"; }
+    if (!cv) r.issues.push(["bad", r.cv ? "iNoCvF" : "iNoCv", {f:r.cv}]);
+    else if (cv.size > 20*1024*1024) r.issues.push(["bad","iBig"]);
+    if (r.issues.some(x=>x[0]==="bad")) { r.level="bad"; r.on=false; r.auto=true; }
+    else { if (r.auto){ r.on=true; r.auto=false; } if (r.issues.length) r.level="warn"; }
   });
   renderRows();
 }
 function renderRows(){
   const tb = $("#rows");
-  if (!rows.length){ tb.innerHTML = `<tr><td colspan="5" class="note">Les files apareixeran aquí.</td></tr>`; return; }
-  tb.innerHTML = rows.map(r => `<tr><td><input type="checkbox" data-i="${r.i}" ${r.on?"checked":""} ${r.level==="bad"?"disabled":""} aria-label="Enviar a ${esc(r.empresa)}"></td>
+  if (!rows.length){ tb.innerHTML = `<tr><td colspan="5" class="note">${esc(t("rowsEmpty"))}</td></tr>`; $("#summary").innerHTML = `<span class="pill">${esc(t("noCsv"))}</span>`; updateButtons(); return; }
+  tb.innerHTML = rows.map(r => `<tr><td><input type="checkbox" data-i="${r.i}" ${r.on?"checked":""} ${r.level==="bad"?"disabled":""} aria-label="${esc(r.empresa)}"></td>
     <td>${esc(r.empresa||"—")}</td><td>${esc(r.email||"—")}</td><td>${esc(cvFor(r)?.name||"—")}</td>
-    <td class="st">${r.issues.length ? r.issues.map(([l,t])=>`<span class="issue ${l}">${l==="bad"?"✕":"!"} ${esc(t)}</span>`).join("") : `<span class="issue ok">✓ Tot correcte</span>`}</td></tr>`).join("");
-  const ok=rows.filter(r=>r.level==="ok").length, w=rows.filter(r=>r.level==="warn").length, b=rows.filter(r=>r.level==="bad").length, sel=rows.filter(r=>r.on).length;
-  $("#summary").innerHTML = `<span class="pill">${rows.length} files</span><span class="pill ok">${ok} correctes</span><span class="pill warn">${w} amb avisos</span><span class="pill bad">${b} amb errors</span><span class="pill">${sel} seleccionades</span>`;
+    <td class="st">${r.issues.length ? r.issues.map(([l,k,v])=>`<span class="issue ${l}">${l==="bad"?"✕":"!"} ${esc(t(k,v))}</span>`).join("") : `<span class="issue ok">✓ ${esc(t("iOk"))}</span>`}</td></tr>`).join("");
+  const c = l => rows.filter(r=>r.level===l).length, sel=rows.filter(r=>r.on).length;
+  $("#summary").innerHTML = `<span class="pill">${t("pRows",{n:rows.length})}</span><span class="pill ok">${t("pOk",{n:c("ok")})}</span><span class="pill warn">${t("pWarn",{n:c("warn")})}</span><span class="pill bad">${t("pBad",{n:c("bad")})}</span><span class="pill">${t("pSel",{n:sel})}</span>`;
   updateButtons();
 }
 $("#rows").addEventListener("change", e => { const i=e.target.dataset.i; if (i!==undefined){ rows[+i].on = e.target.checked; renderRows(); } });
 $("#all").addEventListener("change", e => { rows.forEach(r => { if (r.level!=="bad") r.on = e.target.checked; }); renderRows(); });
 
-/* ===== 3. Google i enviament ===== */
+/* ===== Google ===== */
 function clientId(){ return $("#client-id").value.trim() || DEFAULT_CLIENT_ID; }
-try { $("#client-id").value = localStorage.getItem("cvsender.clientId") || ""; } catch(e){}
-$("#client-id").addEventListener("change", () => { try { localStorage.setItem("cvsender.clientId", $("#client-id").value.trim()); } catch(e){} });
+$("#client-id").value = store.get("cvsender.clientId") || "";
+$("#client-id").addEventListener("change", () => { store.set("cvsender.clientId", $("#client-id").value.trim()); tokenClient = null; });
+function ensureToken(cb){
+  if (token && Date.now() < tokenExp) return cb();
+  if (!clientId()){ log(t("lNoCid"), "err"); $("#s3 details").open = true; return; }
+  if (!window.google?.accounts?.oauth2){ log(t("lNoGsi"), "err"); return; }
+  if (!tokenClient) tokenClient = google.accounts.oauth2.initTokenClient({ client_id: clientId(), scope: SCOPES,
+    callback: resp => { if (resp.error){ log(t("lCancel", {e:resp.error}), "err"); pendingCb = null; return; }
+      token = resp.access_token; tokenExp = Date.now() + ((resp.expires_in||3600) - 60) * 1000;
+      log(t("lLogged"), "ok"); $("#btn-login").textContent = t("logged"); updateButtons();
+      const f = pendingCb; pendingCb = null; f && f(); } });
+  pendingCb = cb; tokenClient.requestAccessToken();
+}
+$("#btn-login").addEventListener("click", () => ensureToken(() => { $("#dry").checked = false; updateButtons(); }));
+
+/* ===== 3. Enviament ===== */
 $("#dry").addEventListener("change", updateButtons);
 function updateButtons(){
-  const sel = rows.filter(r=>r.on).length;
-  $("#btn-send").disabled = sending || !sel || (!$("#dry").checked && !token);
-  $("#btn-send").textContent = $("#dry").checked ? `Prova l'enviament (${sel})` : `Envia les seleccionades (${sel})`;
+  const sel = rows.filter(r=>r.on).length, dry = $("#dry").checked;
+  $("#btn-send").disabled = sending || !sel || (!dry && !token);
+  $("#btn-send").textContent = dry ? t("sendDry",{n:sel}) : t("send",{n:sel});
   $("#btn-stop").disabled = !sending;
+  $("#btn-check").disabled = sending || !hist.length;
 }
-$("#btn-login").addEventListener("click", () => {
-  if (!clientId()){ log("Falta el Client ID de Google. Obre «Configuració de Google» a sota.", "err"); return; }
-  if (!window.google?.accounts?.oauth2){ log("No s'ha pogut carregar l'inici de sessió de Google. Recarrega la pàgina.", "err"); return; }
-  const client = google.accounts.oauth2.initTokenClient({ client_id: clientId(), scope: "https://www.googleapis.com/auth/gmail.send",
-    callback: resp => { if (resp.error){ log("Inici de sessió cancel·lat: " + resp.error, "err"); return; }
-      token = resp.access_token; log("Sessió de Google iniciada. Ja pots enviar.", "ok"); $("#btn-login").textContent = "Sessió iniciada"; $("#dry").checked = false; updateButtons(); } });
-  client.requestAccessToken();
-});
-
 const b64 = s => btoa(unescape(encodeURIComponent(s)));
 const fileB64 = f => new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result.split(",")[1]); fr.onerror = rej; fr.readAsDataURL(f); });
 async function buildRaw(r, cv){
@@ -234,44 +367,114 @@ async function buildRaw(r, cv){
   const mime = [
     `To: ${r.email}`, `Subject: =?UTF-8?B?${b64(subj)}?=`, "MIME-Version: 1.0", `Content-Type: multipart/mixed; boundary="${boundary}"`, "",
     `--${boundary}`, "Content-Type: text/plain; charset=UTF-8", "Content-Transfer-Encoding: base64", "", b64(body).replace(/.{76}/g, "$&\r\n"), "",
-    `--${boundary}`, `Content-Type: application/pdf; name="${cv.name}"`, `Content-Disposition: attachment; filename="${cv.name}"`, "Content-Transfer-Encoding: base64", "", att, "",
+    `--${boundary}`, `Content-Type: application/pdf; name="=?UTF-8?B?${b64(cv.name)}?="`, `Content-Disposition: attachment; filename="=?UTF-8?B?${b64(cv.name)}?="`, "Content-Transfer-Encoding: base64", "", att, "",
     `--${boundary}--`].join("\r\n");
-  return {raw: btoa(unescape(encodeURIComponent(mime))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""), subj};
+  return {raw: b64(mime).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""), subj};
 }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-$("#btn-stop").addEventListener("click", () => { stopFlag = true; log("Aturant després del correu actual…", "err"); });
+$("#btn-stop").addEventListener("click", () => { stopFlag = true; log(t("lStopping"), "err"); });
 $("#btn-send").addEventListener("click", async () => {
   const list = rows.filter(r => r.on), dry = $("#dry").checked, delay = Math.max(5, +$("#delay").value || 30) * 1000;
   sending = true; stopFlag = false; results = []; updateButtons();
-  log(`${dry ? "MODE PROVA · " : ""}Començo: ${list.length} candidatures, ${delay/1000} s de pausa`, "acc");
+  log((dry ? t("lDryTag") : "") + t("lStart", {n:list.length, s:delay/1000}), "acc");
   for (let k = 0; k < list.length; k++){
     if (stopFlag) break;
     const r = list[k], cv = cvFor(r);
     log(`[${k+1}/${list.length}] ${r.empresa} → ${r.email} (${cv.name})`);
     try {
       const {raw, subj} = await buildRaw(r, cv);
+      let sent = {};
       if (!dry){
         const res = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {method:"POST", headers:{Authorization:`Bearer ${token}`, "Content-Type":"application/json"}, body: JSON.stringify({raw})});
-        if (!res.ok){ const t = await res.text(); throw new Error(res.status === 401 ? "La sessió de Google ha caducat. Torna a iniciar-la." : `Gmail ha respost ${res.status}: ${t.slice(0,160)}`); }
+        if (!res.ok){ const tx = await res.text(); const err = new Error(res.status === 401 ? t("lExpired") : t("lGmail", {s:res.status, t:tx.slice(0,160)})); err.fatal = res.status === 401; throw err; }
+        sent = await res.json();
+        hist.unshift({id:sent.id, threadId:sent.threadId, empresa:r.empresa, email:r.email, subj, sent:new Date().toISOString(), status:"pending", replies:0, last:null});
+        saveHist(); renderHist();
       }
-      log(`    ✓ ${dry ? "Preparat (no s'ha enviat)" : "Enviat"} · «${subj}»`, "ok");
-      results.push({...r.raw, estat: dry ? "Prova" : "Enviat", data: new Date().toISOString()});
+      log(`    ${dry ? t("lOkDry") : t("lOk")} · «${subj}»`, "ok");
+      results.push({...r.raw, estat: dry ? "test" : "sent", data: new Date().toISOString(), id: sent.id||"", threadId: sent.threadId||""});
     } catch(e){
-      log(`    ✕ Error: ${e.message}`, "err");
-      results.push({...r.raw, estat: "Error: " + e.message, data: new Date().toISOString()});
-      if (String(e.message).includes("caducat")) break;
+      log("    " + t("lErr", {e:e.message}), "err");
+      results.push({...r.raw, estat: "error: " + e.message, data: new Date().toISOString(), id:"", threadId:""});
+      if (e.fatal){ token = null; $("#btn-login").textContent = t("login"); break; }
     }
     $("#bar").style.width = ((k+1)/list.length*100) + "%";
-    if (k < list.length-1 && !stopFlag && !dry) { log(`    … espero ${delay/1000} s`, "dim"); await sleep(delay); }
+    if (k < list.length-1 && !stopFlag && !dry) { log("    " + t("lWait", {s:delay/1000}), "dim"); await sleep(delay); }
   }
-  const okN = results.filter(x=>x.estat==="Enviat"||x.estat==="Prova").length;
-  log(`Fet: ${okN} de ${list.length} ${dry ? "preparades en mode prova" : "enviades"}.`, "acc");
+  const okN = results.filter(x=>x.estat==="sent"||x.estat==="test").length;
+  log(dry ? t("lDoneDry", {k:okN, n:list.length}) : t("lDone", {k:okN, n:list.length}), "acc");
   sending = false; $("#btn-export").disabled = !results.length; updateButtons();
 });
-$("#btn-export").addEventListener("click", () => {
-  const csv = Papa.unparse(results), a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([csv], {type:"text/csv"})); a.download = "resultat_enviament.csv"; a.click();
+function download(name, data){ const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["﻿" + data], {type:"text/csv"})); a.download = name; a.click(); }
+$("#btn-export").addEventListener("click", () => download("resultat_enviament.csv", Papa.unparse(results)));
+
+/* ===== 4. Seguiment ===== */
+const fmtDate = iso => iso ? new Date(iso).toLocaleDateString(lang, {day:"numeric", month:"short", year:"numeric"}) : "—";
+const daysSince = iso => Math.floor((Date.now() - new Date(iso)) / 864e5);
+function statusHtml(h){
+  if (h.status === "replied") return `<span class="issue ok">✓ ${esc(t("stReplied"))}</span>`;
+  if (h.status === "bounced") return `<span class="issue bad">✕ ${esc(t("stBounced"))}</span>`;
+  if (h.status === "error") return `<span class="issue bad">! ${esc(t("stErr"))}</span>`;
+  if (h.status === "none"){ const d = daysSince(h.sent);
+    return `<span class="issue mut">${esc(t("stNone"))}</span>` + (d >= FOLLOW_DAYS ? `<span class="issue warn">! ${esc(t("stFollow",{d}))}</span>` : ""); }
+  return `<span class="issue mut">${esc(t("stPending"))}</span>`;
+}
+function renderHist(){
+  const tb = $("#hrows");
+  if (!hist.length){ tb.innerHTML = `<tr><td colspan="7" class="note">${esc(t("hEmpty"))}</td></tr>`; $("#hsummary").innerHTML = ""; updateButtons(); return; }
+  tb.innerHTML = hist.map(h => `<tr><td>${esc(h.empresa||"—")}</td><td>${esc(h.email)}</td><td class="num">${fmtDate(h.sent)}</td><td class="st">${statusHtml(h)}</td>
+    <td class="num">${h.replies||0}</td><td class="num">${fmtDate(h.last)}</td>
+    <td>${h.threadId ? `<a href="https://mail.google.com/mail/u/0/#all/${encodeURIComponent(h.threadId)}" target="_blank" rel="noopener">${esc(t("open"))}</a>` : ""}</td></tr>`).join("");
+  const n = s => hist.filter(h => h.status === s).length, rep = n("replied");
+  const checkedAt = hist.map(h=>h.checked).filter(Boolean).sort().pop();
+  $("#hsummary").innerHTML = `<span class="pill">${t("hTotal",{n:hist.length})}</span><span class="pill ok">${t("hRep",{n:rep})}</span><span class="pill">${t("hNone",{n:n("none")})}</span><span class="pill bad">${t("hBounce",{n:n("bounced")})}</span><span class="pill acc">${t("hRate",{n:Math.round(rep/hist.length*100)})}</span>`
+    + (checkedAt ? `<span class="pill">${t("checkedAt",{t:new Date(checkedAt).toLocaleString(lang,{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})})}</span>` : "");
+  updateButtons();
+}
+async function checkReplies(){
+  const list = hist.filter(h => h.threadId);
+  $("#btn-check").disabled = true; log(t("lCheck", {n:list.length}), "acc");
+  for (const h of list){
+    try {
+      const res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/threads/${encodeURIComponent(h.threadId)}?format=metadata&metadataHeaders=From`, {headers:{Authorization:`Bearer ${token}`}});
+      if (res.status === 401){ token = null; log(t("lExpired"), "err"); break; }
+      if (res.status === 403){ log(t("lNoScope"), "err"); token = null; tokenClient = null; break; }
+      if (res.status === 404){ h.status = "error"; continue; }
+      if (!res.ok) throw new Error(res.status);
+      const th = await res.json();
+      const others = (th.messages||[]).filter(m => m.id !== h.id && !(m.labelIds||[]).includes("SENT"));
+      const from = m => ((m.payload?.headers||[]).find(x => x.name.toLowerCase() === "from")?.value || "");
+      const bounces = others.filter(m => /mailer-daemon|postmaster|mail delivery/i.test(from(m)));
+      const replies = others.filter(m => !bounces.includes(m));
+      h.replies = replies.length;
+      h.last = replies.length ? new Date(Math.max(...replies.map(m => +m.internalDate))).toISOString() : null;
+      h.status = replies.length ? "replied" : bounces.length ? "bounced" : "none";
+      h.checked = new Date().toISOString();
+    } catch(e){ log(t("lErr", {e:`${h.empresa}: ${e.message}`}), "err"); }
+    await sleep(120);
+  }
+  saveHist(); renderHist();
+  const n = s => hist.filter(h => h.status === s).length;
+  log(t("lChecked", {r:n("replied"), b:n("bounced"), x:n("none")}), "ok");
+}
+$("#btn-check").addEventListener("click", () => ensureToken(checkReplies));
+$("#btn-hexport").addEventListener("click", () => download("seguiment_candidatures.csv", Papa.unparse(hist.map(h => ({empresa:h.empresa, email:h.email, assumpte:h.subj, enviat:h.sent, estat:h.status, respostes:h.replies, ultima_resposta:h.last||"", id:h.id, threadId:h.threadId})))));
+$("#btn-hclear").addEventListener("click", () => { if (confirm(t("hConfirm"))){ hist = []; saveHist(); renderHist(); } });
+$("#f-hist").addEventListener("change", e => { const f = e.target.files[0]; if (!f) return;
+  Papa.parse(f, {header:true, skipEmptyLines:true, complete: res => {
+    const known = new Set(hist.map(h => h.threadId)); let added = 0;
+    for (const r of res.data){ const tid = (r.threadId||"").trim(); if (!tid || known.has(tid)) continue;
+      const st = (r.estat||"").trim();
+      hist.push({id:(r.id||"").trim(), threadId:tid, empresa:getEmpresa(r), email:getEmail(r), subj:r.assumpte||getSubj(r), sent:r.enviat||r.data||new Date().toISOString(),
+        status:["replied","none","bounced","error"].includes(st) ? st : "pending", replies:+r.respostes||0, last:r.ultima_resposta||null}); known.add(tid); added++; }
+    if (!res.meta.fields?.includes("threadId")) log(t("lImpNone"), "err"); else log(t("lImported", {n:added}), "acc");
+    hist.sort((a,b) => (b.sent||"").localeCompare(a.sent||"")); saveHist(); renderHist(); e.target.value = "";
+  }});
 });
+
+/* ===== Inici ===== */
+applyLang(lang);
+log(t("lReady"), "dim");
 </script>
 </body>
 </html>
