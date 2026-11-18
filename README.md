@@ -14,13 +14,8 @@ App web estàtica per enviar candidatures des del teu Gmail: puges un CSV d'empr
 
 Mira `exemple.csv`.
 
-## Publicar-la a GitHub Pages
 
-1. Crea un repositori nou a GitHub (per exemple `cv-sender`) i puja-hi `index.html`, `exemple.csv` i aquest `README.md`.
-2. Ves a **Settings → Pages**, a *Source* tria **Deploy from a branch**, branca `main`, carpeta `/ (root)` i desa.
-3. Al cap d'un minut tindràs la web a `https://<el-teu-usuari>.github.io/cv-sender/`.
-
-## Configurar Google (una sola vegada, per enviar de veritat)
+## Configurar Google (una sola vegada)
 
 El **mode prova** funciona sense això. Per enviar correus reals cal un Client ID de Google:
 
